@@ -1,0 +1,123 @@
+import java.nio.file.Paths
+
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
+
+plugins {
+    id 'java'
+
+    id 'application'
+    id 'maven-publish'
+
+    id 'com.vaadin'
+    id 'io.spring.dependency-management' version '1.0.13.RELEASE'
+    id 'org.springframework.boot' version '2.7.3'
+}
+
+
+group 'co.zimmermann'
+version '0.1.0-SNAPSHOT'
+
+sourceCompatibility = 17
+targetCompatibility = 17
+
+
+ext.pythonDir = [
+        pythonExe, '-c', "print(__import__('sys').prefix)"
+
+].execute().text.trim()
+
+ext.pythonPath = [
+        pythonExe, '-c', "print(__import__('os').pathsep.join(__import__('sys').path).strip(__import__('os').pathsep))"
+
+].execute().text.trim()
+
+ext.jepDir = [
+        pythonExe, '-c', "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
+
+].execute().text.trim()
+
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+
+    maven {
+        url = 'https://vaadin.com/nexus/content/repositories/vaadin-addons'
+    }
+
+    flatDir {
+        dirs jepDir
+    }
+}
+
+
+dependencyManagement {
+    imports {
+        mavenBom "com.vaadin:vaadin-bom:${vaadinVersion}"
+    }
+}
+
+dependencies {
+    implementation 'com.vaadin:vaadin-spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-devtools' // for Java live reload / Vaadin development mode
+
+    implementation 'com.storedobject.chart:so-charts:3.0.0'
+    implementation 'de.f0rce:ace:3.4.1'
+    implementation 'org.vaadin.artur:a-vaadin-helper:1.9.0'
+
+    implementation 'javax.servlet:javax.servlet-api:4.0.1'
+
+    implementation 'com.vladsch.flexmark:flexmark:0.64.0'
+
+    implementation 'black.ninia:jep:4.0.3'
+
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
+    testCompileOnly 'org.projectlombok:lombok:1.18.24'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+}
+
+
+vaadin {
+    nodeVersion = 'v18.8.0'
+    pnpmEnable = true
+    requireHomeNodeExec = true
+}
+
+
+tasks.withType(JavaExec) {
+    systemProperty 'java.library.path', jepDir // where native jep library is located
+
+    if (DefaultNativePlatform.currentOperatingSystem.windows) {
+        environment 'PATH', ([pythonDir] + [ // where dependents of native jep.dll are located ...
+                'bin',
+                'DLLs',
+                'Library/bin',
+                'Library/usr/bin',
+                'Scripts',
+
+        ].collect { Paths.get pythonDir, it } + [System.getenv('PATH')]).join(File.pathSeparator)
+    }
+
+    environment 'PYTHONHOME', pythonDir
+    environment 'PYTHONPATH', pythonPath
+}
+
+
+test {
+    useJUnitPlatform()
+}
+
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}
