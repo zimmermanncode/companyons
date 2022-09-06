@@ -18,6 +18,8 @@ import com.storedobject.chart.RectangularCoordinate;
 import com.storedobject.chart.SOChart;
 import com.storedobject.chart.XAxis;
 import com.storedobject.chart.YAxis;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
@@ -95,10 +97,13 @@ public class Companyon extends SplitLayout {
 
     public Companyon(@NonNull final String name, @NonNull final List<PythonConsole.Code> inputScript) {
         super(Orientation.HORIZONTAL);
+        super.setSizeFull();
 
         this.view = new PythonComponent(name);
+        // super.addToPrimary(new Scroller(new Div(this.view), Scroller.ScrollDirection.BOTH));
         super.addToPrimary(this.view);
 
+        /*
         @NonNull final var coords = new RectangularCoordinate(new XAxis(DataType.CATEGORY), new YAxis(DataType.NUMBER));
         @NonNull final var bars = new BarChart(new CategoryData(" ", "D", "E", "H", "L", "O", "R", "W"), new Data(1, 1, 1, 1, 3, 2, 1, 1));
         bars.plotOn(coords);
@@ -109,8 +114,10 @@ public class Companyon extends SplitLayout {
         chart.setSizeFull();
 
         this.view.add(chart);
+        */
 
         this.pythonConsole = new PythonConsole(this, inputScript);
+        // super.addToSecondary(new Scroller(new Div(this.pythonConsole), Scroller.ScrollDirection.BOTH));
         super.addToSecondary(this.pythonConsole);
 
         this.drawerTab = new Tab(this, name);
