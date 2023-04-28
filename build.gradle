@@ -9,7 +9,7 @@ plugins {
     id 'application'
     id 'maven-publish'
 
-    id 'de.undercouch.download' version '5.2.0'
+    id 'de.undercouch.download' version '5.4.0'
 
     id 'com.vaadin'
     id 'io.spring.dependency-management' version '1.1.0'
@@ -126,7 +126,7 @@ dependencies {
     implementation 'com.vaadin:vaadin-spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-devtools' // for Java live reload / Vaadin development mode
 
-    implementation 'com.storedobject.chart:so-charts:3.0.0'
+    implementation 'com.storedobject.chart:so-charts:3.1.3'
     implementation 'de.f0rce:ace:3.4.2'
     // implementation 'org.vaadin.artur:a-vaadin-helper:1.9.0'
 
@@ -241,7 +241,7 @@ tasks.register 'installJep', Exec, {
 }
 
 
-tasks.withType(Exec).configureEach {
+tasks.withType Exec configureEach {
     environment 'JAVA_HOME', (System.getProperty 'java.home')
 
     onWindows {
@@ -260,7 +260,7 @@ tasks.withType(Exec).configureEach {
 }
 
 
-tasks.withType(JavaExec).configureEach {
+tasks.withType JavaExec configureEach {
     systemProperty 'java.library.path', project.ext.jepDir // where native jep library is located
 
     onWindows {
@@ -273,7 +273,7 @@ tasks.withType(JavaExec).configureEach {
                     'Library/usr/bin',
                     'Scripts',
 
-            ].collect { Paths.get project.ext.pythonDir, it toString() } + [System.getenv('PATH')])
+            ].collect { Paths.get project.ext.pythonDir, it toString() } + [(System.getenv 'PATH')])
         }
     }
 
@@ -289,7 +289,7 @@ test {
 
 publishing {
     publications {
-        maven(MavenPublication) {
+        maven MavenPublication, {
             from components.java
         }
     }
