@@ -1,6 +1,5 @@
 import java.nio.file.Paths
 
-import org.apache.commons.lang3.StringUtils
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 
@@ -13,8 +12,8 @@ plugins {
     id 'de.undercouch.download' version '5.2.0'
 
     id 'com.vaadin'
-    id 'io.spring.dependency-management' version '1.0.13.RELEASE'
-    id 'org.springframework.boot' version '2.7.3'
+    id 'io.spring.dependency-management' version '1.1.0'
+    id 'org.springframework.boot' version '2.7.11'
 }
 
 
@@ -25,7 +24,14 @@ sourceCompatibility = 17
 targetCompatibility = 17
 
 
-ext.operatingSystem = DefaultNativePlatform.currentOperatingSystem
+final isWindows = DefaultNativePlatform.currentOperatingSystem.windows
+
+final onWindows = {
+    if (isWindows) {
+        it.call()
+    }
+}
+
 
 // ext.pythonZip = "python-3.9.13-embed-amd64.zip"
 // ext.pythonDownloadUrl = "https://www.python.org/ftp/python/3.9.13/${pythonZip}"
@@ -33,29 +39,65 @@ ext.operatingSystem = DefaultNativePlatform.currentOperatingSystem
 ext.minicondaInstaller = 'Miniconda3-py39_4.12.0-Windows-x86_64.exe'
 ext.minicondaDownloadUrl = "https://repo.anaconda.com/miniconda/${minicondaInstaller}"
 
-ext.jepDir = null
-ext.pythonPath = null
 
-if (StringUtils.isNotBlank pythonExe) {
-    ext.pythonDir = Paths.get([pythonExe, '-c', "print(__import__('sys').prefix)"].execute().text.trim())
+([compileJava] + (tasks.withType JavaExec)).each { it.doFirst {
+    [
+            [project.ext.pythonDir, "Python prefix dir"],
+            [project.ext.pythonPath, "Python module search path"],
+            [project.ext.jepDir, "Python/JEP package dir"],
+            [project.ext.jepVersion, "Python/JEP package version"],
 
-} else {
-    final pythonDir = ext.pythonDir = buildDir.toPath() resolve "python"
-    if (pythonDir.toFile() exists()) {
-        ext.pythonExe = pythonDir.resolve "python${operatingSystem.windows ? '.exe' : ''}" toString()
+    ].each { final value, final valueName -> if (value instanceof PythonFail) {
+        throw new RuntimeException("${valueName} could not be determined. Python FAILED with exit code ${value.code}\n" +
+                "Command: ${value.command}\n\n${value.error}\n")
+    } }
+} }
 
-        ext.pythonPath = [
-                pythonExe, '-c',
-                "print(__import__('os').pathsep.join(__import__('sys').path).strip(__import__('os').pathsep))"
 
-        ].execute().text.trim()
+class PythonFail {
 
-        ext.jepDir = [
-                pythonExe, '-c',
-                "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
+    final List command
+    final int code
+    final String error
 
-        ].execute().text.trim()
+    PythonFail(final List command, final int code, final String error) {
+        this.command = command
+        this.code = code
+        this.error = error
     }
+
+    boolean asBoolean() {
+        return false
+    }
+}
+
+final evaluatePythonCode = {
+    final command = [project.ext.pythonExe, '-c', "print(${it})"]
+    logger.info "Executing ${command}"
+
+    final process = command.execute()
+    final output = new StringWriter()
+    final error = new StringWriter()
+
+    process.waitForProcessOutput output, error
+    if (process.exitValue() == 0) {
+        return output.toString().trim()
+    }
+
+    final fail = new PythonFail(command, process.exitValue(), error.toString())
+    logger.warn "Python FAILED with exit code ${fail.code}\n\n${fail.error}"
+    return fail
+}
+
+ext {
+    pythonExe = (project.pythonExe.trim() ? (Paths.get project.pythonExe)
+            : (project.buildDir.toPath() resolve "python/${isWindows ? 'python.exe' : 'bin/python'}")) as String
+
+    pythonDir = evaluatePythonCode "__import__('sys').prefix"
+    pythonPath = evaluatePythonCode "__import__('os').pathsep.join(__import__('sys').path).strip(__import__('os').pathsep)"
+
+    jepDir = evaluatePythonCode "__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin)"
+    jepVersion = evaluatePythonCode "__import__('pkg_resources').require('jep')[0].version"
 }
 
 
@@ -67,17 +109,16 @@ repositories {
         url = 'https://vaadin.com/nexus/content/repositories/vaadin-addons'
     }
 
-    if (StringUtils.isNotBlank jepDir) {
+    if (project.ext.jepDir) {
         flatDir {
-            dirs jepDir
+            dirs project.ext.jepDir
         }
     }
 }
 
-
 dependencyManagement {
     imports {
-        mavenBom "com.vaadin:vaadin-bom:${vaadinVersion}"
+        mavenBom "com.vaadin:vaadin-bom:${project.vaadinVersion}"
     }
 }
 
@@ -86,20 +127,23 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-devtools' // for Java live reload / Vaadin development mode
 
     implementation 'com.storedobject.chart:so-charts:3.0.0'
-    implementation 'de.f0rce:ace:3.4.1'
-    implementation 'org.vaadin.artur:a-vaadin-helper:1.9.0'
+    implementation 'de.f0rce:ace:3.4.2'
+    // implementation 'org.vaadin.artur:a-vaadin-helper:1.9.0'
 
-    implementation 'javax.servlet:javax.servlet-api:4.0.1'
+    // implementation 'javax.servlet:javax.servlet-api:4.0.1'
+    implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
 
     implementation 'com.vladsch.flexmark:flexmark:0.64.0'
 
-    implementation 'black.ninia:jep:4.0.3'
+    if (project.ext.jepDir && project.ext.jepVersion) {
+        implementation (files "${project.ext.jepDir}/jep-${project.ext.jepVersion}.jar")
+    }
 
-    annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+    compileOnly 'org.projectlombok:lombok:1.18.26'
 
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
-    testCompileOnly 'org.projectlombok:lombok:1.18.24'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
+    testCompileOnly 'org.projectlombok:lombok:1.18.26'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
@@ -107,17 +151,20 @@ dependencies {
 
 
 vaadin {
-    nodeVersion = 'v18.8.0'
-    pnpmEnable = true
+    nodeVersion = 'v18.16.0'
+    // pnpmEnable = true
     requireHomeNodeExec = true
+    // useGlobalPnpm = false
 }
 
 
-task downloadPython(group: 'companyons', type: Download) {
+tasks.register 'downloadPython', Download, {
+    group 'companyons'
+
     /*  Adapted from https://github.com/michel-kraemer/gradle-download-task#readme
         */
 
-    src operatingSystem.windows ? minicondaDownloadUrl : null
+    src isWindows ? minicondaDownloadUrl : null
     dest buildDir
     overwrite false
 }
@@ -127,14 +174,15 @@ task downloadPip(type: Download) {
 }
 */
 
-task installPython(group: 'companyons', type: Exec) {
+tasks.register 'installPython', Exec, {
     dependsOn downloadPython
     // dependsOn downloadPip
+    group 'companyons'
 
-    workingDir = buildDir
+    workingDir = project.buildDir
 
-    final basePath = buildDir.toPath()
-    commandLine = [basePath.resolve(minicondaInstaller), '/S', '/NoRegistry=1', "/D=${basePath.resolve('python')}"]
+    final basePath = project.buildDir.toPath()
+    commandLine = [(basePath.resolve minicondaInstaller), '/S', '/NoRegistry=1', "/D=${basePath.resolve 'python'}"]
 
     /*  Adapted from https://discuss.gradle.org/t/extracting-single-file-from-zip-using-gradle-task/30486/2
         */
@@ -149,22 +197,28 @@ task installPython(group: 'companyons', type: Exec) {
 }
 
 
-task installCondaPackages(group: 'companyons', type: Exec) {
-    final packages = condaPackages.split(/\s+/) findAll { StringUtils.isNotBlank it } toList()
-    commandLine = [pythonExe, '-m', 'conda', 'install', '--yes'] + packages
+tasks.register 'installCondaPackages', Exec, {
+    group 'companyons'
+
+    final packages = project.condaPackages.split(/\s+/) findAll { it?.trim() } toList()
+    commandLine = [project.ext.pythonExe, '-m', 'conda', 'install', '--yes'] + packages
 }
 
-task installPipPackages(group: 'companyons', type: Exec) {
-    final packages = pipPackages.split(/\s+/) findAll { StringUtils.isNotBlank it } toList()
-    commandLine = [pythonExe, '-m', 'pip', 'install', '--yes'] + packages
+tasks.register 'installPipPackages', Exec, {
+    group 'companyons'
+
+    final packages = project.pipPackages.split(/\s+/) findAll { it?.trim() } toList()
+    commandLine = [project.ext.pythonExe, '-m', 'pip', 'install', '--yes'] + packages
 }
 
-task installPythonPackages(group: 'companyons') {
-    if (StringUtils.isNotBlank condaPackages) {
+tasks.register 'installPythonPackages', {
+    group 'companyons'
+
+    if (project.condaPackages?.trim()) {
         dependsOn installCondaPackages
     }
 
-    if (StringUtils.isNotBlank pipPackages) {
+    if (project.pipPackages?.trim()) {
         dependsOn installPipPackages
     }
 }
@@ -172,50 +226,59 @@ task installPythonPackages(group: 'companyons') {
 bootRun.dependsOn installPythonPackages
 
 
-task uninstallJep(group: 'companyons', type: Exec) {
-    commandLine = [pythonExe, '-m', 'pip', 'uninstall', '--yes', 'jep']
+tasks.register 'uninstallJep', Exec, {
+    group 'companyons'
+
+    commandLine = [project.ext.pythonExe, '-m', 'pip', 'uninstall', '--yes', 'jep']
 }
 
-task installJep(group: 'companyons', type: Exec) {
+tasks.register 'installJep', Exec, {
     dependsOn uninstallJep
+    group 'companyons'
 
     workingDir = rootDir.toPath() resolve 'jep'
-    commandLine = [pythonExe, '-m', 'pip', 'install', '.']
+    commandLine = [project.ext.pythonExe, '-m', 'pip', 'install', '.']
 }
 
 
-tasks.withType(Exec) {
-    if (operatingSystem.windows && pythonDir.toFile().exists()) {
-        environment 'PATH', ([pythonDir as String] + [ // where dependents of native jep.dll are located ...
-                'bin',
-                'DLLs',
-                'Library/bin',
-                'Library/usr/bin',
-                'Scripts',
+tasks.withType(Exec).configureEach {
+    environment 'JAVA_HOME', (System.getProperty 'java.home')
 
-        ].collect { pythonDir.resolve it } + [System.getenv('PATH')])
-                .join(File.pathSeparator)
+    onWindows {
+        if (project.ext.pythonDir) {
+            environment 'PATH', (String.join File.pathSeparator, [project.ext.pythonDir] + [
+                    // where dependencies of native jep.dll are located
+                    'bin',
+                    'DLLs',
+                    'Library/bin',
+                    'Library/usr/bin',
+                    'Scripts',
+
+            ].collect { Paths.get project.ext.pythonDir, it toString() } + [(System.getenv 'PATH')])
+        }
     }
 }
 
 
-tasks.withType(JavaExec) {
-    systemProperty 'java.library.path', jepDir // where native jep library is located
+tasks.withType(JavaExec).configureEach {
+    systemProperty 'java.library.path', project.ext.jepDir // where native jep library is located
 
-    if (operatingSystem.windows) {
-        environment 'PATH', ([pythonDir as String] + [ // where dependents of native jep.dll are located ...
-                'bin',
-                'DLLs',
-                'Library/bin',
-                'Library/usr/bin',
-                'Scripts',
+    onWindows {
+        if (project.ext.pythonDir) {
+            environment 'PATH', (String.join File.pathSeparator, [project.ext.pythonDir] + [
+                    // where dependencies of native jep.dll are located
+                    'bin',
+                    'DLLs',
+                    'Library/bin',
+                    'Library/usr/bin',
+                    'Scripts',
 
-        ].collect { pythonDir.resolve it } + [System.getenv('PATH')])
-                .join(File.pathSeparator)
+            ].collect { Paths.get project.ext.pythonDir, it toString() } + [System.getenv('PATH')])
+        }
     }
 
-    environment 'PYTHONHOME', pythonDir
-    environment 'PYTHONPATH', pythonPath
+    environment 'PYTHONHOME', project.ext.pythonDir
+    environment 'PYTHONPATH', project.ext.pythonPath
 }
 
 

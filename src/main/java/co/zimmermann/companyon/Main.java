@@ -12,7 +12,7 @@ import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 
-import org.vaadin.artur.helpers.LaunchUtil;
+// import org.vaadin.artur.helpers.LaunchUtil;
 
 import jep.MainInterpreter;
 
@@ -26,6 +26,6 @@ public class Main extends SpringBootServletInitializer implements AppShellConfig
         // MainInterpreter.setSharedModulesArgv("companyion");
         // PythonComponent.THREAD.start();
 
-        LaunchUtil.launchBrowserInDevelopmentMode(SpringApplication.run(Main.class, args));
+        /* LaunchUtil.launchBrowserInDevelopmentMode( */ SpringApplication.run(Main.class, args); // );
     }
 }
