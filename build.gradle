@@ -1,3 +1,4 @@
+import java.nio.file.Files
 import java.nio.file.Paths
 
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
@@ -90,6 +91,8 @@ final evaluatePythonCode = {
 }
 
 ext {
+    pythonProjectDir = file "${project.buildDir}/python-project"
+
     pythonExe = (project.pythonExe.trim() ? (Paths.get project.pythonExe)
             : (project.buildDir.toPath() resolve "python/${isWindows ? 'python.exe' : 'bin/python'}")) as String
 
@@ -156,6 +159,50 @@ vaadin {
     requireHomeNodeExec = true
     // useGlobalPnpm = false
 }
+
+
+tasks.register 'processPythonProject', {
+    dependsOn processResources
+    group 'companyons'
+
+    it.doFirst {
+        final pythonProjectInputDir = file "${project.rootDir}/src/main/python"
+        final pythonProjectOutputDir = file "${project.ext.pythonProjectDir}"
+
+        if (pythonProjectOutputDir.exists()) {
+            pythonProjectOutputDir.deleteDir()
+        }
+
+        pythonProjectOutputDir.mkdir()
+        pythonProjectInputDir.traverse {
+            final outputPath = file "${pythonProjectOutputDir}/${pythonProjectInputDir.relativePath it}" toPath()
+            if (it.isDirectory()) {
+                Files.createDirectory outputPath
+
+            } else {
+                Files.copy it.toPath(), outputPath
+            }
+        }
+    }
+}
+
+tasks.register 'uninstallPythonProject', Exec, {
+    group 'companyons'
+
+    workingDir = project.ext.pythonProjectDir
+    commandLine = [project.ext.pythonExe, '-m', 'pip', 'uninstall', '--yes', 'companyons']
+}
+
+tasks.register 'installPythonProject', Exec, {
+    dependsOn processPythonProject
+    dependsOn uninstallPythonProject
+    group 'companyons'
+
+    workingDir = project.ext.pythonProjectDir
+    commandLine = [project.ext.pythonExe, '-m', 'pip', 'install', '.']
+}
+
+bootRun.dependsOn installPythonProject
 
 
 tasks.register 'downloadPython', Download, {
