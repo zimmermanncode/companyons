@@ -208,7 +208,7 @@ tasks.register 'installPipPackages', Exec, {
     group 'companyons'
 
     final packages = project.pipPackages.split(/\s+/) findAll { it?.trim() } toList()
-    commandLine = [project.ext.pythonExe, '-m', 'pip', 'install', '--yes'] + packages
+    commandLine = [project.ext.pythonExe, '-m', 'pip', 'install'] + packages
 }
 
 tasks.register 'installPythonPackages', {
