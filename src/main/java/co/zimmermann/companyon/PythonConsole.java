@@ -117,7 +117,24 @@ public class PythonConsole extends VerticalLayout {
                         try {
                             // interpreter.set("UI._ui", historyEntry.getLeft().getUI().get());
                             interpreter.exec("UI.__class__._ui = UI.__class__._python_components['drawer'].getUI().get()");
-                            interpreter.exec(historyEntry.getRight());
+                            // interpreter.exec(historyEntry.getRight());
+
+                            @NonNull final var source = historyEntry.getRight();
+                            try {
+                                interpreter.invoke("compile", source, "__main__", "eval");
+                                interpreter.exec("_ = " + source);
+
+                                @NonNull final var result = interpreter.getValue("_");
+                                if (result != null) {
+                                    this.console.getUI().ifPresent(ui -> ui.access(() -> {
+                                        this.console.addComponentAtIndex(this.console.indexOf(historyEntry.getLeft()) + 1,
+                                                new PythonOutput(this.console, result.toString()));
+                                    }));
+                                }
+
+                            } catch (final JepException e) {
+                                interpreter.exec(source);
+                            }
 
                         } catch (final JepException e) {
                             log.error("Failed executing Python input", e);
