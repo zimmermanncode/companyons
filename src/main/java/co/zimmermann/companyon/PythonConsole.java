@@ -103,13 +103,7 @@ public class PythonConsole extends VerticalLayout {
             interpreter.exec("""
                     from companyons import UI
 
-                    UI._python_components = globals().pop('_UI_python_components')
-                    UI._python_exec_history = globals().pop('_UI_python_exec_history')
-                    UI.view = globals().pop('_UI_python_view')
-
-                    UI._create_listener_wrapper = globals().pop('_UI_create_listener_wrapper')
-
-                    UI = UI()
+                    UI = UI(globals())
                     """);
 
             int historyIndex = 0;
