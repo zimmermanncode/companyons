@@ -95,7 +95,7 @@ public class Companyon extends SplitLayout {
         return this.drawerTab.getName();
     }
 
-    public Companyon(@NonNull final String name, @NonNull final List<PythonConsole.Code> inputScript) {
+    public Companyon(@NonNull final String name, @NonNull final List<AbstractCode> inputScript) {
         super(Orientation.HORIZONTAL);
         super.setSizeFull();
 
@@ -132,7 +132,7 @@ public class Companyon extends SplitLayout {
 
             for (@NonNull final var pythonInput : this.pythonConsole.getInputs()) {
                 fileWriter.write("```python\n");
-                fileWriter.write(pythonInput.getCode());
+                fileWriter.write(pythonInput.toString());
                 fileWriter.write("\n```\n\n");
             }
 
@@ -159,7 +159,7 @@ public class Companyon extends SplitLayout {
         @NonNull final var markdownParser = Parser.builder().build();
         @NonNull final var markdown = markdownParser.parse(markdownText);
 
-        @NonNull final var inputScript = new ArrayList<PythonConsole.Code>();
+        @NonNull final var inputScript = new ArrayList<AbstractCode>();
         markdown.getChildren().forEach(markdownNode -> {
             if (markdownNode instanceof FencedCodeBlock codeBlock && codeBlock.getInfo().equals("python")) {
 
@@ -168,10 +168,10 @@ public class Companyon extends SplitLayout {
                     pythonCodeWriter.write(codeLine.toString());
                 });
 
-                inputScript.add(new PythonConsole.Code(pythonCodeWriter.toString()));
+                inputScript.add(new PythonCode(pythonCodeWriter.toString()));
 
             } else {
-                inputScript.add(new PythonConsole.Markdown(markdownNode));
+                inputScript.add(new MarkdownCode(markdownNode));
             }
         });
 
