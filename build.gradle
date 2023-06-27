@@ -161,7 +161,7 @@ vaadin {
 }
 
 
-tasks.register 'processPythonProject', {
+tasks.register 'processPythonCompanyonsPackage', {
     dependsOn processResources
     group 'companyons'
 
@@ -186,23 +186,23 @@ tasks.register 'processPythonProject', {
     }
 }
 
-tasks.register 'uninstallPythonProject', Exec, {
+tasks.register 'uninstallPythonCompanyonsPackage', Exec, {
     group 'companyons'
 
     workingDir = project.ext.pythonProjectDir
     commandLine = [project.ext.pythonExe, '-m', 'pip', 'uninstall', '--yes', 'companyons']
 }
 
-tasks.register 'installPythonProject', Exec, {
-    dependsOn processPythonProject
-    dependsOn uninstallPythonProject
+tasks.register 'installPythonCompanyonsPackage', Exec, {
+    dependsOn processPythonCompanyonsPackage
+    dependsOn uninstallPythonCompanyonsPackage
     group 'companyons'
 
     workingDir = project.ext.pythonProjectDir
     commandLine = [project.ext.pythonExe, '-m', 'pip', 'install', '.']
 }
 
-bootRun.dependsOn installPythonProject
+bootRun.dependsOn installPythonCompanyonsPackage
 
 
 tasks.register 'downloadPython', Download, {
