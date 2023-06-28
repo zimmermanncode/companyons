@@ -137,6 +137,7 @@ dependencies {
     implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
 
     implementation 'com.vladsch.flexmark:flexmark:0.64.0'
+    implementation 'one.util:streamex:0.8.1'
 
     if (project.ext.jepDir && project.ext.jepVersion) {
         implementation (files "${project.ext.jepDir}/jep-${project.ext.jepVersion}.jar")

@@ -4,27 +4,40 @@ import javax.annotation.Nullable;
 
 import lombok.NonNull;
 
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 
 import de.f0rce.ace.AceEditor;
 import de.f0rce.ace.enums.AceMode;
 import de.f0rce.ace.enums.AceTheme;
 
-public abstract class AbstractInput extends HorizontalLayout {
+
+public abstract class AbstractInput extends AbstractInputOutput {
 
     @NonNull
-    private final AceEditor ace;
+    protected final AceEditor ace;
 
-    protected AbstractInput(@Nullable final AbstractCode code, @NonNull final AceMode aceMode) {
+    protected AbstractInput(
+            @NonNull final PythonConsole console,
+            @NonNull final AceMode aceMode,
+            @Nullable final AbstractCode code) {
+
+        this(console, aceMode, (code == null) ? null : code.toString());
+    }
+
+    protected AbstractInput(
+            @NonNull final PythonConsole console,
+            @NonNull final AceMode aceMode,
+            @Nullable final String text) {
+
+        super(console, null, null);
+
         @NonNull final var ace = this.ace = new AceEditor(AceTheme.terminal, aceMode, null, null);
         ace.setDisplayIndentGuides(true);
         ace.setWidthFull();
         ace.setWrap(true);
 
-        if (code != null) {
-            ace.setValue(code.toString());
+        if (text != null) {
+            ace.setValue(text);
         }
 
         ace.setAutoComplete(true);
@@ -36,14 +49,20 @@ public abstract class AbstractInput extends HorizontalLayout {
                     """);
         });
 
-        @NonNull final var execButton = new Button(VaadinIcon.STEP_FORWARD.create());
-        execButton.addClickListener(event -> {
+        super.addToolbarButton(VaadinIcon.STEP_FORWARD, event -> {
             this.execute();
         });
 
-        this.add(ace);
-        this.add(execButton);
-        this.setWidthFull();
+        super.addToolbarButton(VaadinIcon.CLOSE, event -> {
+            this.delete();
+        });
+
+        super.details.setContent(ace);
+    }
+
+    @Override
+    public void delete() {
+        this.console.removeInput(this);
     }
 
     public abstract void execute();

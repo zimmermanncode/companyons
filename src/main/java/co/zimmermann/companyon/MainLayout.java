@@ -6,9 +6,10 @@ import javax.annotation.Nullable;
 
 import lombok.NonNull;
 
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -19,7 +20,8 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.PageTitle;
 
 
-@PageTitle("Companyon")
+@CssImport("./styles/companyons.css")
+@PageTitle("Companyons")
 public class MainLayout extends AppLayout {
 
     @NonNull

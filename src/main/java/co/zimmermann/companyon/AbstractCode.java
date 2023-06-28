@@ -11,8 +11,7 @@ public class AbstractCode {
         this.text = text;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public String toString() {
         return this.text;
     }

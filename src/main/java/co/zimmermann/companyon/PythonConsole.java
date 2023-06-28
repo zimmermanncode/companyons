@@ -2,6 +2,7 @@ package co.zimmermann.companyon;
 
 import java.util.List;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nullable;
 
 import lombok.Getter;
@@ -40,7 +41,7 @@ public class PythonConsole extends VerticalLayout {
         } else {
             for (@NonNull final var code : inputScript) {
                 if (code instanceof MarkdownCode markdownCode) {
-                    super.add(markdownCode.toHtml());
+                    super.add(MarkdownOutput.forConsole(this).fromCode(markdownCode));
 
                 } else if (code instanceof PythonCode pythonCode) {
                     super.add(new PythonInput(python, pythonCode));
@@ -49,15 +50,49 @@ public class PythonConsole extends VerticalLayout {
         }
 
         this.plusButton.addClickListener(ignoredEvent -> {
-            this.addPythonInputFrom(null);
+            this.addPythonInputWithInitial(null);
         });
 
         super.add(this.plusButton);
+
+        super.setSpacing(false);
+        super.setWidthFull();
     }
 
-    public void addPythonInputFrom(@Nullable final PythonCode code) {
+    public void addPythonInputWithInitial(@Nullable final PythonCode code) {
         super.getUI().ifPresent(ui -> ui.access(() -> {
             super.addComponentAtIndex(super.indexOf(this.plusButton), new PythonInput(this.python, code));
+        }));
+    }
+
+    public void removeInput(@NonNull final AbstractInput input) {
+        super.getUI().ifPresent(ui -> ui.access(() -> {
+            super.remove(input);
+        }));
+    }
+
+    public void removeOutput(@NonNull final AbstractOutput output) {
+        super.getUI().ifPresent(ui -> ui.access(() -> {
+            super.remove(output);
+        }));
+    }
+
+    public void replaceInputWithOutput(@NonNull final AbstractInput input, @NonNull final AbstractOutput... outputs) {
+        super.getUI().ifPresent(ui -> ui.access(() -> {
+            @Nonnegative int index = super.indexOf(input);
+            super.remove(input);
+
+            for (@NonNull final var output : outputs) {
+                super.addComponentAtIndex(index++, output);
+            }
+        }));
+    }
+
+    public void replaceOutputWithInput(@NonNull final AbstractOutput output, @NonNull final AbstractInput input) {
+        super.getUI().ifPresent(ui -> ui.access(() -> {
+            @Nonnegative final int index = super.indexOf(output);
+            super.remove(output);
+            super.addComponentAtIndex(index, input);
         }));
     }
 

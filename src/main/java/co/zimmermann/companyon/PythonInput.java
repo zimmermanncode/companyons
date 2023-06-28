@@ -13,7 +13,7 @@ public class PythonInput extends AbstractInput {
     private final PythonThread python;
 
     public PythonInput(@NonNull final PythonThread python, @Nullable final PythonCode code) {
-        super(code, AceMode.python);
+        super(python.getConsole(), AceMode.python, code);
         this.python = python;
     }
 

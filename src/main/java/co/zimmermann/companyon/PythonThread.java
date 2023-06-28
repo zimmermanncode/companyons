@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import javax.annotation.Nonnegative;
+
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
 
@@ -20,7 +23,7 @@ import jep.SubInterpreter;
 
 @Log4j2
 public final class PythonThread extends Thread {
-    @NonNull
+    @NonNull @Getter
     private final PythonConsole console;
 
     @NonNull
@@ -60,10 +63,11 @@ public final class PythonThread extends Thread {
                 UI = UI(globals())
                 """);
 
-        int historyIndex = 0;
+        @Nonnegative int historyIndex = 0;
         while (true) {
             // synchronized (this.execHistory) {
             while (this.execHistory.size() > historyIndex) {
+                @NonNull final var outputLabel = String.valueOf(historyIndex);
                 @NonNull final var historyEntry = this.execHistory.get(historyIndex++);
 
                 // historyEntry.getLeft().getUI().ifPresent(ui -> ui.access(() -> {
@@ -74,20 +78,23 @@ public final class PythonThread extends Thread {
                     // interpreter.exec(historyEntry.getRight());
 
                     historyEntry.getRight().evaluateWith(interpreter).ifPresent(result -> {
+                        @NonNull final var resultText = result.toString();
+
                         this.console.getUI().ifPresent(ui -> ui.access(() -> {
                             this.console.addComponentAtIndex(this.console.indexOf(historyEntry.getLeft()) + 1,
-                                    new PythonOutput(this.console, result.toString()));
+                                    new PythonOutput(this.console, outputLabel, resultText));
                         }));
                     });
 
                 } catch (final JepException e) {
-                    log.error("Failed executing Python input", e);
+                    log.error("Failed executing Python input ...", e);
 
                     this.console.getUI().ifPresent(ui -> ui.access(() -> {
                         this.console.addComponentAtIndex(this.console.indexOf(historyEntry.getLeft()) + 1,
-                                new PythonOutput(this.console, e.getMessage()));
+                                new PythonErrorOutput(this.console, outputLabel, e));
                     }));
                 }
+
                 // interpreter.close();
                 // }));
             }
@@ -96,11 +103,12 @@ public final class PythonThread extends Thread {
     }
 
     public void execute(@NonNull final PythonInput input, @NonNull final PythonCode code) {
+        input.setLabel(String.valueOf(this.execHistory.size()));
         this.execHistory.add(Pair.of(input, code));
     }
 
     public void execute(@NonNull final PythonInput input, @NonNull final String expression) {
-        this.execHistory.add(Pair.of(input, new PythonCode(expression)));
+        this.execute(input, new PythonCode(expression));
     }
 
     public void launchKernel(@NonNull final PythonInput input) {

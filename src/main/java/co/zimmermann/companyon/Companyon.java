@@ -10,16 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.storedobject.chart.BarChart;
-import com.storedobject.chart.CategoryData;
-import com.storedobject.chart.Data;
-import com.storedobject.chart.DataType;
-import com.storedobject.chart.RectangularCoordinate;
-import com.storedobject.chart.SOChart;
-import com.storedobject.chart.XAxis;
-import com.storedobject.chart.YAxis;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.orderedlayout.Scroller;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
@@ -31,10 +21,23 @@ import com.vladsch.flexmark.ast.FencedCodeBlock;
 import com.vladsch.flexmark.parser.Parser;
 
 import com.vaadin.flow.component.Key;
+// import com.vaadin.flow.component.html.Div;
+// import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
+
 import com.vaadin.flow.data.value.ValueChangeMode;
 
+/*
+import com.storedobject.chart.BarChart;
+import com.storedobject.chart.CategoryData;
+import com.storedobject.chart.Data;
+import com.storedobject.chart.DataType;
+import com.storedobject.chart.RectangularCoordinate;
+import com.storedobject.chart.SOChart;
+import com.storedobject.chart.XAxis;
+import com.storedobject.chart.YAxis;
+*/
 
 @Log4j2
 public class Companyon extends SplitLayout {

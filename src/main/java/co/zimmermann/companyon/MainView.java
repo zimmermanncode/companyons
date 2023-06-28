@@ -6,7 +6,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 
-@PageTitle("Main Companyon")
+@PageTitle("Main – Companyons")
 @Route(value = "", layout = MainLayout.class)
 public class MainView extends Companyon {
 
