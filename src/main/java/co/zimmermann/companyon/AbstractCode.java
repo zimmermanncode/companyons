@@ -2,17 +2,11 @@ package co.zimmermann.companyon;
 
 import lombok.NonNull;
 
-public class AbstractCode {
 
-    @NonNull
-    protected final String text;
+public abstract class AbstractCode extends AbstractBlock {
 
-    public AbstractCode(@NonNull final String text) {
-        this.text = text;
+    protected AbstractCode(@NonNull final String text) {
+        super(text);
     }
 
-    @NonNull @Override
-    public String toString() {
-        return this.text;
-    }
 }

@@ -15,6 +15,7 @@ import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.tabs.Tabs;
 
 import com.vaadin.flow.router.PageTitle;
@@ -41,6 +42,17 @@ public class MainLayout extends AppLayout {
         @NonNull final var headerTitle = new H3();
         headerTitle.getStyle().set("margin", "0.5em");
 
+        @NonNull final var saveSelect = new Select<Companyon.FileFormat>();
+        saveSelect.setId("companyons-save-select");
+        saveSelect.setItemLabelGenerator(Companyon.FileFormat::getExtension);
+        saveSelect.setItems(Companyon.FileFormat.MARKDOWN, Companyon.FileFormat.PYTHON);
+
+        saveSelect.addAttachListener(event -> {
+            event.getUI().getPage().executeJs(
+                    "document.querySelector('#companyons-save-select').shadowRoot.querySelector('.vaadin-select-container')"
+                            + ".style.width = '8em'");
+        });
+
         this.companyonTabs.setOrientation(Tabs.Orientation.VERTICAL);
         this.companyonTabs.addSelectedChangeListener(event -> {
             if (event.getSelectedTab() instanceof Companyon.Tab companyonTab) {
@@ -49,6 +61,7 @@ public class MainLayout extends AppLayout {
                 super.getUI().ifPresent(ui -> ui.access(() -> {
                     super.setContent(companyon);
                     headerTitle.setText(companyon.getName());
+                    saveSelect.setValue(companyon.getFileFormat());
                 }));
             }
         });
@@ -58,29 +71,45 @@ public class MainLayout extends AppLayout {
         });
 
         this.addAttachListener(ignoredEvent -> {
-            @Nullable final var mdFiles = new File(".").listFiles(file -> file.getName().endsWith(".md"));
-            if (mdFiles != null) {
-                for (@NonNull final var companyonFile : mdFiles) {
-                    this.loadCompanyonFrom(companyonFile);
+            @NonNull final var files = new File(".").listFiles();
+            if (files != null) {
+                for (@NonNull final var file : files) {
+                    @NonNull final var fileName = file.getName();
+
+                    if (fileName.endsWith(Companyon.FileFormat.MARKDOWN.getExtension())) {
+                        this.loadCompanyonFromMarkdown(file);
+                    }
+
+                    if (fileName.endsWith(Companyon.FileFormat.PYTHON.getExtension())) {
+                        this.loadCompanyonFromPython(file);
+                    }
                 }
             }
         });
 
-        @NonNull final var saveButton = new Button("Save", ignoredEvent -> {
+        saveSelect.addValueChangeListener(event -> {
+            if (this.getContent() instanceof Companyon companyon) {
+                companyon.setFileFormat(event.getValue());
+            }
+        });
+
+        @NonNull final var saveButton = new Button(VaadinIcon.DISC.create(), ignoredEvent -> {
             if (this.getContent() instanceof Companyon companyon) {
                 companyon.save();
             }
         });
 
-        saveButton.setIconAfterText(false);
+        // saveButton.setIconAfterText(false);
+        saveSelect.setPrefixComponent(saveButton);
 
-        @NonNull final var renameButton = new Button("Rename", ignoredEvent -> {
+        @NonNull final var renameButton = new Button(VaadinIcon.PENCIL.create(), ignoredEvent -> {
             if (this.getContent() instanceof Companyon companyon) {
                 companyon.getDrawerTab().editName();
             }
         });
 
-        @NonNull final var toolBar = new HorizontalLayout(plusButton, saveButton, renameButton);
+        @NonNull final var toolBar = new HorizontalLayout(plusButton, saveSelect, renameButton);
+        toolBar.setAlignItems(FlexComponent.Alignment.CENTER);
         toolBar.setWidthFull();
 
         super.addToDrawer(drawerTitle, toolBar, this.companyonTabs, new PythonComponent("drawer"));
@@ -139,8 +168,15 @@ public class MainLayout extends AppLayout {
     }
 
     @NonNull
-    public void loadCompanyonFrom(@NonNull final File companyonFile) {
-        Companyon.loadFrom(companyonFile).ifPresent(companyon -> {
+    public void loadCompanyonFromMarkdown(@NonNull final File companyonFile) {
+        Companyon.loadFromMarkdown(companyonFile).ifPresent(companyon -> {
+            this.addCompanyon(companyon);
+        });
+    }
+
+    @NonNull
+    public void loadCompanyonFromPython(@NonNull final File companyonFile) {
+        Companyon.loadFromPython(companyonFile).ifPresent(companyon -> {
             this.addCompanyon(companyon);
         });
     }

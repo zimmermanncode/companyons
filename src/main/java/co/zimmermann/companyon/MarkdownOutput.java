@@ -53,4 +53,9 @@ public class MarkdownOutput extends AbstractOutput {
             super.console.removeOutput(this);
         });
     }
+
+    @NonNull @Override
+    public String toString() {
+        return this.markdownText;
+    }
 }

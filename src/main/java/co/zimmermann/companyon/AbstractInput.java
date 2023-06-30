@@ -34,7 +34,7 @@ public abstract class AbstractInput extends AbstractInputOutput {
         @NonNull final var ace = this.ace = new AceEditor(AceTheme.terminal, aceMode, null, null);
         ace.setDisplayIndentGuides(true);
         ace.setWidthFull();
-        ace.setWrap(true);
+        ace.setWrap(false);
 
         if (text != null) {
             ace.setValue(text);

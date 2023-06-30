@@ -11,8 +11,24 @@ import de.f0rce.ace.enums.AceTheme;
 
 public class PythonOutput extends AbstractOutput {
 
+    @NonNull
+    protected final AceEditor ace;
+
+    public PythonOutput(@NonNull final PythonConsole console, @NonNull final String label, @NonNull final OutputBlock block) {
+        this(console, label, block.toString());
+    }
+
     public PythonOutput(@NonNull final PythonConsole console, @NonNull final String label, @NonNull final String text) {
         this(console, "success", label, text);
+    }
+
+    public PythonOutput(
+            @NonNull final PythonConsole console,
+            @NonNull final String badgeVariant,
+            @NonNull final String label,
+            @NonNull final OutputBlock block) {
+
+        this(console, badgeVariant, label, block.toString());
     }
 
     public PythonOutput(
@@ -23,12 +39,12 @@ public class PythonOutput extends AbstractOutput {
 
         super(console, badgeVariant, label);
 
-        @NonNull final var ace = new AceEditor(AceTheme.terminal, AceMode.text, null, null);
+        @NonNull final var ace = this.ace = new AceEditor(AceTheme.terminal, AceMode.text, null, null);
         ace.setReadOnly(true);
         ace.setShowGutter(false);
         ace.setValue(text);
         ace.setWidthFull();
-        ace.setWrap(true);
+        ace.setWrap(false);
 
         ace.addAceReadyListener(event -> {
             ace.getElement().executeJs("""
@@ -47,5 +63,10 @@ public class PythonOutput extends AbstractOutput {
     @Override
     public void delete() {
         super.console.removeOutput(this);
+    }
+
+    @Override
+    public String toString() {
+        return this.ace.getValue();
     }
 }

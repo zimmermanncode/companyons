@@ -29,7 +29,12 @@ public class PythonConsole extends VerticalLayout {
         return super.getChildren().filter(AbstractInput.class::isInstance).map(AbstractInput.class::cast).toList();
     }
 
-    public PythonConsole(@NonNull final Companyon companyon, @NonNull final List<AbstractCode> inputScript) {
+    @NonNull
+    public List<AbstractInputOutput> getInputsOutputs() {
+        return super.getChildren().filter(AbstractInputOutput.class::isInstance).map(AbstractInputOutput.class::cast).toList();
+    }
+
+    public PythonConsole(@NonNull final Companyon companyon, @NonNull final List<AbstractBlock> inputScript) {
         this.companyon = companyon;
 
         @NonNull final var python = this.python = new PythonThread(this);
@@ -39,12 +44,18 @@ public class PythonConsole extends VerticalLayout {
             super.add(new PythonInput(python, null));
 
         } else {
-            for (@NonNull final var code : inputScript) {
-                if (code instanceof MarkdownCode markdownCode) {
+            for (@NonNull final var block : inputScript) {
+                if (block instanceof MarkdownCode markdownCode) {
                     super.add(MarkdownOutput.forConsole(this).fromCode(markdownCode));
 
-                } else if (code instanceof PythonCode pythonCode) {
+                } else if (block instanceof PythonCode pythonCode) {
                     super.add(new PythonInput(python, pythonCode));
+
+                } else if (block instanceof ErrorOutputBlock errorBlock) {
+                    super.add(new PythonErrorOutput(this, "", errorBlock));
+
+                } else if (block instanceof OutputBlock outputBlock) {
+                    super.add(new PythonOutput(this, "", outputBlock));
                 }
             }
         }
