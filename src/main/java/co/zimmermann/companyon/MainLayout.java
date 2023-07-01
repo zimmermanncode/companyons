@@ -150,8 +150,8 @@ public class MainLayout extends AppLayout {
             drawerToggleAdder.run();
         });
 
-        super.addAttachListener(ignoredEvent -> {
-            super.getUI().ifPresent(ui -> ui.getPage().addBrowserWindowResizeListener(ignoredResizeEvent -> {
+        super.addAttachListener(event -> {
+            event.getSource().getUI().ifPresent(ui -> ui.getPage().addBrowserWindowResizeListener(ignoredResizeEvent -> {
                 drawerToggleAdder.run();
             }));
         });

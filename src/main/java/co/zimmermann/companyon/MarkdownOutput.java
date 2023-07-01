@@ -45,11 +45,11 @@ public class MarkdownOutput extends AbstractOutput {
         this.markdownText = text;
         super.details.addContent(new Html(HTML_RENDERER.render(node)));
 
-        super.addToolbarButton(VaadinIcon.STEP_BACKWARD, event -> {
+        super.addToolbarButton(VaadinIcon.STEP_BACKWARD, ignoredEvent -> {
             super.console.replaceOutputWithInput(this, new MarkdownInput(super.console, this.markdownText));
         });
 
-        super.addToolbarButton(VaadinIcon.CLOSE, event -> {
+        super.addToolbarButton(VaadinIcon.CLOSE, ignoredEvent -> {
             super.console.removeOutput(this);
         });
     }

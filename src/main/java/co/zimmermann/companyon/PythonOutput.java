@@ -47,13 +47,13 @@ public class PythonOutput extends AbstractOutput {
         ace.setWrap(false);
 
         ace.addAceReadyListener(event -> {
-            ace.getElement().executeJs("""
+            event.getSource().getElement().executeJs("""
                     this.editor.container.style.position = 'relative';
                     this.editor.setOption('maxLines', Infinity);
                     """);
         });
 
-        super.addToolbarButton(VaadinIcon.CLOSE, event -> {
+        super.addToolbarButton(VaadinIcon.CLOSE, ignoredEvent -> {
             this.delete();
         });
 

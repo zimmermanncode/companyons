@@ -23,7 +23,7 @@ public class PythonComponent extends VerticalLayout {
         COMPONENTS.put(name, this);
 
         /*
-        this.add(new Button("Python …", event -> {
+        this.add(new Button("Python …", ignoredEvent -> {
             // THREAD.execute(this, String.format("COMPONENTS['%s'].add(H1('title'), H2('subtitle'))", name));
             THREAD.launchKernel(this);
         }));

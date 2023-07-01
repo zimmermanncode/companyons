@@ -30,8 +30,8 @@ public class CompanyonTab extends com.vaadin.flow.component.tabs.Tab {
 
         this.nameField.setValue(name);
         this.nameField.setValueChangeMode(ValueChangeMode.ON_BLUR);
-        this.nameField.addBlurListener(ignoredEvent -> {
-            this.nameField.setReadOnly(true);
+        this.nameField.addBlurListener(event -> {
+            event.getSource().setReadOnly(true);
         });
 
         this.nameField.addKeyDownListener(event -> {

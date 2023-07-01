@@ -43,17 +43,17 @@ public abstract class AbstractInput extends AbstractInputOutput {
         ace.setAutoComplete(true);
 
         ace.addAceReadyListener(event -> {
-            ace.getElement().executeJs("""
+            event.getSource().getElement().executeJs("""
                     this.editor.container.style.position = 'relative';
                     this.editor.setOption('maxLines', Infinity);
                     """);
         });
 
-        super.addToolbarButton(VaadinIcon.STEP_FORWARD, event -> {
+        super.addToolbarButton(VaadinIcon.STEP_FORWARD, ignoredEvent -> {
             this.execute();
         });
 
-        super.addToolbarButton(VaadinIcon.CLOSE, event -> {
+        super.addToolbarButton(VaadinIcon.CLOSE, ignoredEvent -> {
             this.delete();
         });
 
