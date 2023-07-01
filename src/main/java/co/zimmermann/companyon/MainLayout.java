@@ -55,7 +55,7 @@ public class MainLayout extends AppLayout {
 
         this.companyonTabs.setOrientation(Tabs.Orientation.VERTICAL);
         this.companyonTabs.addSelectedChangeListener(event -> {
-            if (event.getSelectedTab() instanceof Companyon.Tab companyonTab) {
+            if (event.getSelectedTab() instanceof CompanyonTab companyonTab) {
                 @NonNull final var companyon = companyonTab.getCompanyon();
 
                 super.getUI().ifPresent(ui -> ui.access(() -> {

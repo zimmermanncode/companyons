@@ -8,8 +8,12 @@ import java.nio.charset.StandardCharsets;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 import lombok.Getter;
 import lombok.NonNull;
@@ -23,13 +27,9 @@ import org.apache.commons.io.FileUtils;
 import com.vladsch.flexmark.ast.FencedCodeBlock;
 import com.vladsch.flexmark.parser.Parser;
 
-import com.vaadin.flow.component.Key;
 // import com.vaadin.flow.component.html.Div;
 // import com.vaadin.flow.component.orderedlayout.Scroller;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
-
-import com.vaadin.flow.data.value.ValueChangeMode;
 
 /*
 import com.storedobject.chart.BarChart;
@@ -48,7 +48,7 @@ public class Companyon extends SplitLayout {
     public enum FileFormat {
 
         MARKDOWN(".md"),
-        PYTHON(".py") ;
+        PYTHON(".py");
 
         @NonNull @Getter
         private final String extension;
@@ -59,53 +59,21 @@ public class Companyon extends SplitLayout {
     }
 
     @NonNull
-    private static final Pattern SPECIAL_COMMENT_BLOCK_PATTERN = Pattern.compile(
+    private static final Parser MARKDOWN_PARSER = Parser.builder().build();
+
+    @NonNull
+    private static final Pattern SPECIAL_BLOCK_COMMENT_PATTERN = Pattern.compile(
             "(?m)# \\s*---\\s*([a-z]+)\\s*---\\s*\n((#( .*)?(\n|$))*)");
 
-    public static class Tab extends com.vaadin.flow.component.tabs.Tab {
-
-        @NonNull @Getter
-        private final Companyon companyon;
-
-        @NonNull
-        private final TextField nameField = new TextField();
-
-        @NonNull
-        public String getName() {
-            return this.nameField.getValue();
-        }
-        private Tab(@NonNull final Companyon companyon, @NonNull final String name) {
-            this.companyon = companyon;
-
-            this.nameField.setPattern("[^/\\\\;:]+");
-            this.nameField.setReadOnly(true);
-            this.nameField.setRequired(true);
-
-            this.nameField.setValue(name);
-            this.nameField.setValueChangeMode(ValueChangeMode.ON_BLUR);
-            this.nameField.addBlurListener(ignoredEvent -> {
-                this.nameField.setReadOnly(true);
-            });
-
-            this.nameField.addKeyDownListener(event -> {
-                @NonNull final var key = event.getKey();
-
-                if (key.equals(Key.ENTER) || key.equals(Key.of("Escape"))) {
-                    this.nameField.blur();
-                }
-            });
-
-            super.add(nameField);
-        }
-
-        public void editName() {
-            this.nameField.setReadOnly(false);
-            this.nameField.focus();
-        }
-    }
+    @NonNull
+    private static final Map<String, Function<String, AbstractBlock>> SPECIAL_BLOCK_CONSTRUCTORS = Map.of(
+            "markdown", MarkdownCode::new,
+            "python", PythonCode::new,
+            "output", OutputBlock::new,
+            "error", ErrorOutputBlock::new);
 
     @NonNull @Getter
-    private final Tab drawerTab;
+    private final CompanyonTab drawerTab;
 
     @NonNull @Getter
     private final PythonConsole pythonConsole;
@@ -152,7 +120,7 @@ public class Companyon extends SplitLayout {
         // super.addToSecondary(new Scroller(new Div(this.pythonConsole), Scroller.ScrollDirection.BOTH));
         super.addToSecondary(this.pythonConsole);
 
-        this.drawerTab = new Tab(this, name);
+        this.drawerTab = new CompanyonTab(this, name);
     }
 
     public Companyon() {
@@ -162,13 +130,14 @@ public class Companyon extends SplitLayout {
     public void saveToMarkdown(@NonNull final File file) {
         try (@NonNull final var fileWriter = new FileWriter(file, StandardCharsets.UTF_8)) {
 
-            @NonNull final ThrowingBiConsumer<String, String, IOException> fencedCodeBlockWriter = (info, text) -> {
-                fileWriter.write("```");
-                fileWriter.write(info);
-                fileWriter.write("\n");
-                fileWriter.write(text.stripTrailing());
-                fileWriter.write("\n```\n\n");
-            };
+            @NonNull final ThrowingBiConsumer<String, AbstractInputOutput, IOException>
+                    fencedCodeBlockWriter = (info, intputOutput) -> {
+                        fileWriter.write("```");
+                        fileWriter.write(info);
+                        fileWriter.write("\n");
+                        fileWriter.write(intputOutput.toString().stripTrailing());
+                        fileWriter.write("\n```\n\n");
+                    };
 
             for (@NonNull final var inputOutput : this.pythonConsole.getInputsOutputs()) {
                 if (inputOutput instanceof MarkdownInput markdownInput) {
@@ -180,13 +149,13 @@ public class Companyon extends SplitLayout {
                     fileWriter.write("\n\n");
 
                 } else if (inputOutput instanceof PythonInput pythonInput) {
-                    fencedCodeBlockWriter.accept("python", pythonInput.toString());
+                    fencedCodeBlockWriter.accept("python", pythonInput);
 
                 } else if (inputOutput instanceof  PythonErrorOutput pythonError) {
-                    fencedCodeBlockWriter.accept("error", pythonError.toString());
+                    fencedCodeBlockWriter.accept("error", pythonError);
 
                 } else if (inputOutput instanceof  PythonOutput pythonOutput) {
-                    fencedCodeBlockWriter.accept("output", pythonOutput.toString());
+                    fencedCodeBlockWriter.accept("output", pythonOutput);
                 }
             }
 
@@ -270,34 +239,22 @@ public class Companyon extends SplitLayout {
             return Optional.empty();
         }
 
-        @NonNull final var markdownParser = Parser.builder().build();
-        @NonNull final var markdown = markdownParser.parse(markdownText);
+        @NonNull final var markdownDocument = MARKDOWN_PARSER.parse(markdownText);
 
         @NonNull final var inputScript = new ArrayList<AbstractBlock>();
-        for (@NonNull final var markdownNode : markdown.getChildren()) {
+        for (@NonNull final var markdownNode : markdownDocument.getChildren()) {
             if (markdownNode instanceof FencedCodeBlock block) {
                 @NonNull final var blockInfo = block.getInfo().toString();
 
-                if (blockInfo.matches("python|output|error")) {
+                @Nullable final var blockConstructor = SPECIAL_BLOCK_CONSTRUCTORS.get(blockInfo);
+                if (blockConstructor != null) {
                     @NonNull final var blockTextWriter = new StringWriter();
-                    block.getContentLines().forEach(line -> {
+                    for (@NonNull final var line : block.getContentLines()) {
                         blockTextWriter.write(line.toString());
-                    });
-
-                    if (blockInfo.equals("python")) {
-                        inputScript.add(new PythonCode(blockTextWriter.toString()));
-                        continue;
                     }
 
-                    if (blockInfo.equals("output")) {
-                        inputScript.add(new OutputBlock(blockTextWriter.toString()));
-                        continue;
-                    }
-
-                    if (blockInfo.equals("error")) {
-                        inputScript.add(new ErrorOutputBlock(blockTextWriter.toString()));
-                        continue;
-                    }
+                    inputScript.add(blockConstructor.apply(blockTextWriter.toString()));
+                    continue;
                 }
             }
 
@@ -321,27 +278,16 @@ public class Companyon extends SplitLayout {
 
         @NonNull final var inputScript = new ArrayList<AbstractBlock>();
         for (@NonNull final var blockText : pythonText.split("(?m)\\r?\n\\r?\n\\r?\n")) {
-            @NonNull final var matcher = SPECIAL_COMMENT_BLOCK_PATTERN.matcher(blockText);
+
+            @NonNull final var matcher = SPECIAL_BLOCK_COMMENT_PATTERN.matcher(blockText);
             if (matcher.matches()) {
                 @NonNull final var blockInfo = matcher.group(1);
 
-                if (blockInfo.matches("markdown|output|error")) {
+                @Nullable final var blockConstructor = SPECIAL_BLOCK_CONSTRUCTORS.get(blockInfo);
+                if (blockConstructor != null) {
                     @NonNull final var specialBlockText = matcher.group(2).replaceAll("(?m)^# ", "");
-
-                    if (blockInfo.equals("markdown")) {
-                        inputScript.add(new MarkdownCode(specialBlockText));
-                        continue;
-                    }
-
-                    if (blockInfo.equals("output")) {
-                        inputScript.add(new OutputBlock(specialBlockText));
-                        continue;
-                    }
-
-                    if (blockInfo.equals("error")) {
-                        inputScript.add(new ErrorOutputBlock(specialBlockText));
-                        continue;
-                    }
+                    inputScript.add(blockConstructor.apply(specialBlockText));
+                    continue;
                 }
             }
 
