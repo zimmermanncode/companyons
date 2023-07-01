@@ -1,6 +1,8 @@
 package co.zimmermann.companyon;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nullable;
@@ -12,6 +14,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
+import de.f0rce.ace.AceEditor;
+
 
 public class PythonConsole extends VerticalLayout {
 
@@ -20,6 +24,9 @@ public class PythonConsole extends VerticalLayout {
 
     @NonNull
     private final PythonThread python;
+
+    @NonNull
+    private AtomicReference<AceEditor> focusedPythonAce = new AtomicReference<>(null);
 
     @NonNull
     private final Button plusButton = new Button(VaadinIcon.PLUS.create());
@@ -111,5 +118,14 @@ public class PythonConsole extends VerticalLayout {
         this.getInputs().forEach(input -> {
             input.execute();
         });
+    }
+
+    @NonNull
+    public Optional<AceEditor> getFocusedPythonAce() {
+        return Optional.ofNullable(this.focusedPythonAce.get());
+    }
+
+    public void setFocusedPythonAce(@Nullable final AceEditor ace) {
+        this.focusedPythonAce.set(ace);
     }
 }

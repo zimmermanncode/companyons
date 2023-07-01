@@ -1,5 +1,7 @@
 from typing import Any, Callable, Dict, List
 
+import jedi
+
 
 class UI:
     """Main proxy for interacting with a Companyon's web interface area."""
@@ -10,14 +12,17 @@ class UI:
     #:  A Companyon's designated UI area (Java/Vaadin ``VerticalLayout``).
     view = None
 
+    #:  A Companyon's local namespace dict.
+    _console_locals: Dict[str, Any] = None
+
     #:  A Companyon's Python code execution history.
     _python_exec_history: List[str] = None
 
     #:  A Companyon's singleton UI instance.
     _instance: 'UI' = None
 
-    def __new__(cls, console_globals: Dict[str, Any] = None):
-        if console_globals is None:
+    def __new__(cls, console_locals: Dict[str, Any] = None):
+        if console_locals is None:
             if not isinstance(UI._instance, UI):
                 raise RuntimeError(
                     "companyons.UI has not yet been initialized.")
@@ -27,12 +32,14 @@ class UI:
             raise RuntimeError(
                 "companyons.UI has already been initialized.")
 
-        cls._python_components = console_globals.pop(
+        cls._console_locals = console_locals
+
+        cls._python_components = console_locals.pop(
             '_UI_python_components')
-        cls._python_exec_history = console_globals.pop(
+        cls._python_exec_history = console_locals.pop(
             '_UI_python_exec_history')
 
-        cls._create_listener_wrapper = console_globals.pop(
+        cls._create_listener_wrapper = console_locals.pop(
             '_UI_create_listener_wrapper')
 
         return super().__new__(cls)
@@ -86,6 +93,16 @@ class UI:
         UI._listeners.append(func)
         return UI._create_listener_wrapper.apply(
             f"UI._listeners[{listener_index}]()")
+
+    @staticmethod
+    def complete(source):
+        try:
+            return [
+                completion.name for completion in
+                jedi.Interpreter(source, [UI._console_locals]).complete()]
+
+        except:
+            return []
 
     def __getitem__(self, python_component_name):
         return UI._python_components[python_component_name]

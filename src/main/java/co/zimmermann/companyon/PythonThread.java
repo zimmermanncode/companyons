@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import javax.annotation.Nonnegative;
+import javax.annotation.Nullable;
 
 import lombok.Getter;
 import lombok.NonNull;
@@ -15,6 +16,8 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.vaadin.flow.component.ComponentEventListener;
+
+import de.f0rce.ace.AceEditor;
 
 import jep.Jep;
 import jep.JepException;
@@ -60,12 +63,50 @@ public final class PythonThread extends Thread {
         interpreter.exec("""
                 from companyons import UI
 
-                UI = UI(globals())
+                UI = UI(locals())
                 """);
+
+        @Nullable AceEditor focusedPythonAce;
+
+        @Nullable String completionSource = null;
+        @NonNull String newCompletionSource;
+
+        @Nullable Object completions = null;
+        @Nullable Object newCompletions;
 
         @Nonnegative int historyIndex = 0;
         while (true) {
             // synchronized (this.execHistory) {
+
+            focusedPythonAce = this.console.getFocusedPythonAce().orElse(null);
+            if (focusedPythonAce == null) {
+                completionSource = null;
+                completions = null;
+
+            } else {
+                newCompletionSource = focusedPythonAce.getValue()
+                        .substring(0, focusedPythonAce.getCursorPosition().getIndex());
+
+                if (!newCompletionSource.equals(completionSource)) {
+                    completionSource = newCompletionSource;
+                    newCompletions = interpreter.invoke("UI.complete", completionSource);
+
+                } else {
+                    newCompletions = completions;
+                }
+
+                if (newCompletions instanceof List<?> completionList && !completionList.equals(completions)) {
+                    completions = completionList;
+
+                    @NonNull final var ace = focusedPythonAce;
+                    ace.getUI().ifPresent(ui -> ui.access(() -> {
+                        ace.addStaticWordCompleter(completionList.stream().map(Object::toString).toList(), false);
+                    }));
+
+                    log.info(completions.toString());
+                }
+            }
+
             while (this.execHistory.size() > historyIndex) {
                 @NonNull final var outputLabel = String.valueOf(historyIndex);
                 @NonNull final var historyEntry = this.execHistory.get(historyIndex++);

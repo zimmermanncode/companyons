@@ -15,6 +15,14 @@ public class PythonInput extends AbstractInput {
     public PythonInput(@NonNull final PythonThread python, @Nullable final PythonCode code) {
         super(python.getConsole(), AceMode.python, code);
         this.python = python;
+
+        super.ace.addFocusListener(event -> {
+            super.console.setFocusedPythonAce(event.getSource());
+        });
+
+        super.ace.addBlurListener(ignoredEvent -> {
+            super.console.setFocusedPythonAce(null);
+        });
     }
 
     @Override

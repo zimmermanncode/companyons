@@ -207,6 +207,15 @@ tasks.register 'installPythonCompanyonsPackage', Exec, {
 bootRun.dependsOn installPythonCompanyonsPackage
 
 
+tasks.register 'installPythonJediPackage', Exec, {
+    group 'companyons'
+
+    commandLine = [project.ext.pythonExe, '-m', 'pip', 'install', 'jedi']
+}
+
+bootRun.dependsOn installPythonJediPackage
+
+
 tasks.register 'downloadPython', Download, {
     group 'companyons'
 
