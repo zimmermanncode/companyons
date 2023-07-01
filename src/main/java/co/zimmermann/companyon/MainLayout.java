@@ -93,11 +93,13 @@ public class MainLayout extends AppLayout {
             }
         });
 
-        @NonNull final var saveButton = new Button(VaadinIcon.DISC.create(), ignoredEvent -> {
+        @NonNull final var saveButton = new Button(VaadinIcon.DISC.create());
+        saveButton.getElement().addEventListener("click", ignoredEvent -> {
             if (this.getContent() instanceof Companyon companyon) {
                 companyon.save();
             }
-        });
+
+        }).addEventData("event.stopPropagation()");
 
         // saveButton.setIconAfterText(false);
         saveSelect.setPrefixComponent(saveButton);
