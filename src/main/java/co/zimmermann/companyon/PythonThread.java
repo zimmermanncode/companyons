@@ -67,6 +67,7 @@ public final class PythonThread extends Thread {
                 """);
 
         @Nullable AceEditor focusedPythonAce;
+        @Nonnegative int aceCursorIndex = 0;
 
         @Nullable String completionSource = null;
         @NonNull String newCompletionSource;
@@ -84,8 +85,11 @@ public final class PythonThread extends Thread {
                 completions = null;
 
             } else {
-                newCompletionSource = focusedPythonAce.getValue()
-                        .substring(0, focusedPythonAce.getCursorPosition().getIndex());
+                newCompletionSource = focusedPythonAce.getValue();
+                aceCursorIndex = focusedPythonAce.getCursorPosition().getIndex();
+                if (aceCursorIndex <= newCompletionSource.length()) {
+                    newCompletionSource = newCompletionSource.substring(0, aceCursorIndex);
+                }
 
                 if (!newCompletionSource.equals(completionSource)) {
                     completionSource = newCompletionSource;
