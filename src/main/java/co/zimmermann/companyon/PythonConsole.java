@@ -83,6 +83,18 @@ public class PythonConsole extends VerticalLayout {
         }));
     }
 
+    public void addPythonInputAfter(@NonNull final AbstractInputOutput inputOutput) {
+        super.getUI().ifPresent(ui -> ui.access(() -> {
+            super.addComponentAtIndex(super.indexOf(inputOutput) + 1, new PythonInput(this.python, null));
+        }));
+    }
+
+    public void addMarkdownInputAfter(@NonNull final AbstractInputOutput inputOutput) {
+        super.getUI().ifPresent(ui -> ui.access(() -> {
+            super.addComponentAtIndex(super.indexOf(inputOutput) + 1, new MarkdownInput(this, ""));
+        }));
+    }
+
     public void removeInput(@NonNull final AbstractInput input) {
         super.getUI().ifPresent(ui -> ui.access(() -> {
             super.remove(input);

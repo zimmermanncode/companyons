@@ -37,6 +37,18 @@ public abstract class AbstractInputOutput extends HorizontalLayout {
 
         this.console = console;
 
+        @NonNull final var plusPyButton = new Button(VaadinIcon.PLUS.create());
+        plusPyButton.getElement().addEventListener("click", ignoredEvent -> {
+            this.console.addPythonInputAfter(this);
+
+        }).addEventData("event.stopPropagation()");
+
+        @NonNull final var plusMdButton = new Button(VaadinIcon.PLUS.create());
+        plusMdButton.getElement().addEventListener("click", ignoredEvent -> {
+            this.console.addMarkdownInputAfter(this);
+
+        }).addEventData("event.stopPropagation()");
+
         // this.badge.getElement().getThemeList().add("badge " + Optional.ofNullable(badgeVariant).orElse(""));
         if (badgeVariant != null) {
             this.badge.getStyle().set("color", String.format("var(--lumo-%s-text-color)", badgeVariant));
@@ -46,13 +58,19 @@ public abstract class AbstractInputOutput extends HorizontalLayout {
             this.badge.setText(String.format("[ %s ]", label));
         }
 
+        @NonNull final var leftBar = new HorizontalLayout(plusPyButton, plusMdButton, this.badge);
+        leftBar.setAlignItems(Alignment.BASELINE);
+        leftBar.setPadding(false);
+        leftBar.setSpacing(false);
+        leftBar.setWidth("");
+
         // this.toolbar.add(this.badge);
         // this.toolbar.setAlignItems(Alignment.BASELINE);
         this.toolbar.setPadding(false);
         this.toolbar.setSpacing(false);
         this.toolbar.setWidth("");
 
-        @NonNull final var summary = new HorizontalLayout(this.badge, toolbar);
+        @NonNull final var summary = new HorizontalLayout(leftBar, toolbar);
         summary.setAlignItems(Alignment.BASELINE);
         summary.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         summary.setPadding(false);
